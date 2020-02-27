@@ -1,0 +1,19 @@
+[package]
+name = "eeprom34c04"
+version = "0.1.0"
+authors = ["Wayne du Preez <waynedupreez1@gmail.com>"]
+repository = ""
+license = "MIT OR Apache-2.0"
+description = "Platform-agnostic Rust driver for the 34x series serial EEPROMs."
+readme = "README.md"
+keywords = ["eeprom", "i2c", "driver", "embedded-hal-driver"]
+categories = ["embedded", "hardware-support", "no-std"]
+homepage = ""
+documentation = ""
+
+[dependencies]
+embedded-hal = "0.2"
+
+[dev-dependencies]
+linux-embedded-hal = "0.3"
+embedded-hal-mock = "0.7"
