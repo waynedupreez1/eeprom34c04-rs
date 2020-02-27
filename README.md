@@ -24,14 +24,35 @@ applications where low power and low voltage operation are essential.
 |-------:|------------:|------------:|----------:|
 |  34c04 |      4 Kbit |         512 |  16 bytes |
 
-## Usage examples (see also examples folder)
+## Usage examples
 
+```rust
 let address = eeprom34c04::SlaveAddr::A2A1A0(false, true, true);
+
 let mut eeprom = eeprom34c04::Eeprom34c04::new_34c04(i2c_setup, address);
+
 let memory_address = 0x0F;
+
 let data = 0xF0;
 
 eeprom.write_byte(memory_address, data).unwrap();
 
 delay.delay_ms(5u16);
+
 let read_data = eeprom.read_byte(memory_address).unwrap();
+```
+
+# Inspired
+
+These drivers are heavily influenced by this work:
+https://github.com/eldruin/eeprom24x-rs.git
+
+## License
+
+Licensed under either of
+
+ * Apache License, Version 2.0 ([LICENSE-APACHE](LICENSE-APACHE) or
+   http://www.apache.org/licenses/LICENSE-2.0)
+ * MIT license ([LICENSE-MIT](LICENSE-MIT) or
+   http://opensource.org/licenses/MIT) at your option.
+   
