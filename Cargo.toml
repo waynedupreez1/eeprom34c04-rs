@@ -1,5 +1,5 @@
 [package]
-name = "eeprom34c04"
+name = "eeprom34c04-rs"
 version = "0.1.0"
 authors = ["Wayne du Preez <waynedupreez1@gmail.com>"]
 repository = ""
