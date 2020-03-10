@@ -86,7 +86,7 @@ impl<I2C, E> Eeprom34c04<I2C>
     /// Read a multiple bytes from an address.
     /// 
     /// 
-    pub fn read_byte_array(&mut self, address: u32, data: &mut [u8]) -> Result<(), error::Error<E>> {
+    pub fn read_byte_array(&mut self, address: u32, data: &mut [u8]) -> Result<u8, error::Error<E>> {
 
         addr_in_bounds(address)?;
 
@@ -98,11 +98,17 @@ impl<I2C, E> Eeprom34c04<I2C>
 
         let spa_dont_care = [0; 2];
         self.i2c.write(page_addr, &spa_dont_care).map_err(error::Error::I2C)?;
-                
+                      
         let memaddr = [mem_addr];
+
+        //Dummy read write else the sequential 
+        //reading only reads the first value correctly
+        let mut dummy_data = [0; 1];
+        self.i2c.write_read(self.rw_func_bits, &memaddr, &mut dummy_data).map_err(error::Error::I2C)?;
+
         self.i2c.write_read(self.rw_func_bits, &memaddr, data).map_err(error::Error::I2C)?;
 
-        Ok(())
+        Ok(mem_addr)
     }
 
     /// Write multiple bytes to address.
@@ -111,7 +117,7 @@ impl<I2C, E> Eeprom34c04<I2C>
     /// 
     pub fn write_byte_array(&mut self, address: u32, data: &[u8]) -> Result<(), error::Error<E>> {
 
-        //Only allowed up to write 16 bytes
+        //Only allowed up to 16 bytes to be written
         if data.len() > 16 { return Err(error::Error::TooMuchData) };
         
         addr_in_bounds(address)?;
