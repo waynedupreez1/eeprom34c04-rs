@@ -1,4 +1,4 @@
-use hal::blocking::i2c::{Write, WriteRead};
+use hal::blocking::i2c::{Write, WriteRead, Read};
 use Eeprom34c04;
 use SlaveAddr;
 use super::error;
@@ -43,7 +43,7 @@ impl<I2C> Eeprom34c04<I2C> {
 
 /// Common methods
 impl<I2C, E> Eeprom34c04<I2C>
-    where I2C: Write<Error = E> + WriteRead<Error = E> {
+    where I2C: Write<Error = E> + WriteRead<Error = E> + Read<Error = E> {
     /// Write a single byte in an address.
     ///
     /// After writing a byte, the EEPROM enters an internally-timed write cycle
@@ -86,7 +86,7 @@ impl<I2C, E> Eeprom34c04<I2C>
     /// Read a multiple bytes from an address.
     /// 
     /// 
-    pub fn read_byte_array(&mut self, address: u32, data: &mut [u8]) -> Result<u8, error::Error<E>> {
+    pub fn read_byte_array(&mut self, address: u32, data: &mut [u8]) -> Result<(), error::Error<E>> {
 
         addr_in_bounds(address)?;
 
@@ -106,34 +106,66 @@ impl<I2C, E> Eeprom34c04<I2C>
         let mut dummy_data = [0; 1];
         self.i2c.write_read(self.rw_func_bits, &memaddr, &mut dummy_data).map_err(error::Error::I2C)?;
 
-        self.i2c.write_read(self.rw_func_bits, &memaddr, data).map_err(error::Error::I2C)?;
 
-        Ok(mem_addr)
+        self.i2c.write_read(self.rw_func_bits, &memaddr, data).map_err(error::Error::I2C)
     }
 
     /// Write multiple bytes to address.
     /// 
-    /// Only allow up to 16 bytes of data to be written
+    /// Maximum allowed data to be written to eeprom in 1 go is 16 bytes
     /// 
-    pub fn write_byte_array(&mut self, address: u32, data: &[u8]) -> Result<(), error::Error<E>> {
+    /// The function will allow the following byte array sizes to be passed
+    /// 1. 2 bytes
+    /// 2. 4 bytes
+    /// 3. 8 bytes
+    /// 4. 16 bytes
+    /// If you pass anything else the InvalidDataArrayMultiple will be returned
+    /// 
+    pub fn write_byte_array(&mut self, address: u32, data_array: &[u8]) -> Result<(), error::Error<E>> {
 
         //Only allowed up to 16 bytes to be written
-        if data.len() > 16 { return Err(error::Error::TooMuchData) };
+        if data_array.len() > 16 { return Err(error::Error::TooMuchData) };
         
         addr_in_bounds(address)?;
 
-        addr_in_bounds_page_wr(address, data.len() as u32)?;
+        addr_in_bounds_page_wr(address, data_array.len() as u32)?;
 
         let (page_addr, mem_addr) = addr_convert(address)?;
 
-        self.last_addr_r = address;
+        self.last_addr_w = address;
 
         let spa_dont_care = [0; 2];
         self.i2c.write(page_addr, &spa_dont_care).map_err(error::Error::I2C)?;
 
-        let array = [mem_addr, data[0], data[1], data[2], data[3]];
-        self.i2c.write(self.rw_func_bits, &array).map_err(error::Error::I2C)?;
+        
+        match data_array.len() {
+            2 => {
+                let array = [mem_addr, data_array[0], data_array[1] ];
+                self.i2c.write(self.rw_func_bits, &array).map_err(error::Error::I2C)?;
+            }
 
+            4 => {
+                let array = [mem_addr, data_array[0], data_array[1], data_array[2], data_array[3] ];
+                self.i2c.write(self.rw_func_bits, &array).map_err(error::Error::I2C)?;
+            }
+
+            8 => {
+                let array = [mem_addr, data_array[0], data_array[1], data_array[2], data_array[3], 
+                                        data_array[4], data_array[5], data_array[6], data_array[7] ];
+                self.i2c.write(self.rw_func_bits, &array).map_err(error::Error::I2C)?;
+            }
+
+            16 => {
+                let array = [mem_addr, data_array[0],  data_array[1], data_array[2], data_array[3], 
+                                        data_array[4], data_array[5], data_array[6], data_array[7],
+                                        data_array[8], data_array[9], data_array[10],data_array[11],
+                                        data_array[12],data_array[13],data_array[14],data_array[15] ];
+                self.i2c.write(self.rw_func_bits, &array).map_err(error::Error::I2C)?;
+            }
+
+            _ => { return Err(error::Error::InvalidDataArrayMultiple) }
+        }
+        
         Ok(())
     }
     

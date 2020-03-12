@@ -14,4 +14,6 @@ pub enum Error<E> {
     InvalidAddr,
     /// Quad Convertion Failed
     InvalidAddrConvert,
+    /// Invalid data array multiple
+    InvalidDataArrayMultiple,
 }
